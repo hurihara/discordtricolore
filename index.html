@@ -129,6 +129,20 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;ba
 const SUPA_URL='https://mgqnofmgnvzznfuoxfur.supabase.co';
 const SUPA_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1ncW5vZm1nbnZ6em5mdW94ZnVyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk2MDM5OTQsImV4cCI6MjA5NTE3OTk5NH0.F9mw65DEnmwGsHf2iMO2CXktAhGUB7VRn8o-Xud95iI';
 const sb=supabase.createClient(SUPA_URL,SUPA_KEY);
+  function nameToEmail(name){
+  let hash=5381;
+  for(let i=0;i<name.length;i++){
+    hash=((hash<<5)+hash)+name.charCodeAt(i);
+    hash=hash&hash;
+  }
+  const h=Math.abs(hash).toString(36).padStart(8,'0');
+  return `u${h}@enden.com`;
+}
+
+function getAuthPass(name,inputPass){
+  if(inputPass)return inputPass;
+  return 'enden_'+Array.from(name).map(c=>c.charCodeAt(0).toString(36)).join('')+'_pw';
+}
 
 const THEMES=[
   {name:'紫苑',accent:'#534AB7',light:'#EEEDFE',mid:'#AFA9EC'},
@@ -285,15 +299,38 @@ async function doLogin(){
   const pass=(document.getElementById('l-pass').value||'').trim();
   if(!name){setStatus('名前を入力してください','err');return}
   setStatus('確認中…');
+
   const{data:allowed}=await sb.from('nariki_allowed').select('*').eq('name',name).maybeSingle();
   if(!allowed){setStatus('この名前は登録されていません。主催者に招待してもらってください。','err');return}
   if(allowed.password&&allowed.password!==pass){setStatus('合言葉が違います','err');return}
+
+  const email=nameToEmail(name);
+  const authPass=getAuthPass(name,pass);
+  let authUser=null;
+
+  const{data:signInData,error:signInError}=await sb.auth.signInWithPassword({email,password:authPass});
+  if(signInError){
+    const{data:signUpData,error:signUpError}=await sb.auth.signUp({email,password:authPass});
+    if(signUpError){setStatus('エラーが発生しました：'+signUpError.message,'err');return}
+    authUser=signUpData.user;
+  }else{
+    authUser=signInData.user;
+  }
+
+  if(!authUser){setStatus('認証に失敗しました','err');return}
+
   let{data:ex}=await sb.from('nariki_members').select('*').eq('name',name).maybeSingle();
   if(!ex){
-    const{data:cr,error}=await sb.from('nariki_members').insert({name,role:'member'}).select().single();
-    if(error){setStatus('エラーが発生しました','err');return}
+    const{data:cr,error}=await sb.from('nariki_members')
+      .insert({name,role:'member',auth_id:authUser.id})
+      .select().single();
+    if(error){setStatus('メンバー登録に失敗しました','err');return}
     ex=cr;
+  }else if(!ex.auth_id){
+    await sb.from('nariki_members').update({auth_id:authUser.id}).eq('name',name);
+    ex.auth_id=authUser.id;
   }
+
   S.me=ex;S.screen='app';
   setStatus('読み込んでいます…');
   await loadChannels();
@@ -344,6 +381,7 @@ async function submitPost(){
     user_name:S.me.name,
     chara_name:S.me.chara_name||'',
     user_role:S.me.role,
+    auth_id:S.me.auth_id,
     text,img_url:S.pendingImg||null,
     quote:S.pendingQuote||null,
     hana:0,hana_by:[],
