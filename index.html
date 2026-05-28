@@ -197,6 +197,14 @@ function applyTheme(i){
 function setStatus(msg,type='loading'){S.status={msg,type};render()}
 function clearStatus(){S.status=null;render()}
 
+async function loadSettings(){
+  const{data}=await sb.from('nariki_settings').select('*').eq('id',1).single();
+  if(data){
+    S.serverName=data.server_name;
+    S.serverIcon=data.server_icon;
+    S.themeIdx=data.theme_idx||0;
+  }
+}
 async function loadChannels(){
   const{data}=await sb.from('nariki_channels').select('*').order('created_at');
   S.channels=data||[];
@@ -333,6 +341,7 @@ async function doLogin(){
 
   S.me=ex;S.screen='app';
   setStatus('読み込んでいます…');
+  await loadSettings();
   await loadChannels();
   await loadMembers();
   S.me=S.members.find(m=>m.name===ex.name)||ex;
@@ -856,7 +865,7 @@ function saveSettings(){
   const ic=document.getElementById('st-icon');
   if(n&&n.value.trim())S.serverName=n.value.trim();
   if(ic&&ic.value.trim())S.serverIcon=ic.value.trim();
-  S.view='chat';render();
+  S.view='chat';await sb.from('nariki_settings').update({render();
 }
 
 render();
