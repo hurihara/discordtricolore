@@ -1,1 +1,827 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Discord Tricolore</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.31.0/dist/tabler-icons.min.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --accent:#534AB7;--accent-light:#EEEDFE;--accent-mid:#AFA9EC;
+  --bg:#ffffff;--bg2:#f5f4f0;--bg3:#eeede8;
+  --text:#1a1a1a;--text2:#555;--text3:#999;
+  --border:rgba(0,0,0,0.12);--border2:rgba(0,0,0,0.22);
+  --danger:#cc3333;--radius:10px;--radius-lg:14px;
+}
+@media(prefers-color-scheme:dark){
+  :root{
+    --bg:#1a1a1a;--bg2:#242424;--bg3:#2e2e2e;
+    --text:#f0ede6;--text2:#aaa;--text3:#666;
+    --border:rgba(255,255,255,0.1);--border2:rgba(255,255,255,0.2);
+  }
+}
+body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;background:var(--bg3);color:var(--text);height:100dvh;display:flex;flex-direction:column;overflow:hidden}
+.layout{display:flex;flex:1;overflow:hidden;max-width:860px;width:100%;margin:0 auto;background:var(--bg);border-left:0.5px solid var(--border);border-right:0.5px solid var(--border)}
+.sidebar{width:200px;background:var(--bg2);border-right:0.5px solid var(--border);display:flex;flex-direction:column;flex-shrink:0;overflow:hidden}
+@media(max-width:600px){
+  .sidebar{display:none;position:fixed;inset:0;z-index:500;width:100%;background:rgba(0,0,0,.4)}
+  .sidebar.open{display:flex}
+  .sidebar-inner{width:240px;height:100%;background:var(--bg2);display:flex;flex-direction:column;overflow:hidden}
+  .hamburger{display:flex;align-items:center;justify-content:center;width:40px;height:40px;background:none;border:none;cursor:pointer;color:var(--text2);font-size:22px;flex-shrink:0}
+  .ch-head{padding-left:4px}
+}
+@media(min-width:601px){
+  .sidebar-inner{display:contents}
+  .hamburger{display:none}
+}
+.srv-head{padding:14px 12px;border-bottom:0.5px solid var(--border);display:flex;align-items:center;gap:9px;flex-shrink:0}
+.srv-icon{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0;background:var(--accent-light);color:var(--accent)}
+.srv-name{font-size:13px;font-weight:500;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sb-scroll{flex:1;overflow-y:auto;padding:4px 6px}
+.sec-label{padding:8px 6px 3px;font-size:10px;font-weight:500;color:var(--text3);display:flex;justify-content:space-between;align-items:center}
+.ch-btn{width:100%;text-align:left;background:none;border:none;padding:6px 8px;border-radius:7px;font-size:13px;color:var(--text2);cursor:pointer;display:flex;align-items:center;gap:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ch-btn:hover{background:var(--bg3);color:var(--text)}
+.ch-btn.active{background:var(--accent-light);color:var(--accent);font-weight:500}
+.ch-btn i{font-size:14px;flex-shrink:0}
+.add-btn{background:none;border:none;cursor:pointer;color:var(--text3);font-size:15px;display:flex;padding:1px;line-height:1}
+.add-btn:hover{color:var(--text)}
+.sb-footer{border-top:0.5px solid var(--border);padding:10px 12px;display:flex;align-items:center;gap:8px;flex-shrink:0;cursor:pointer}
+.sb-footer:hover{background:var(--bg3)}
+.av{border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:500;flex-shrink:0}
+.sb-name{font-size:12px;font-weight:500;color:var(--text);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.main{flex:1;display:flex;flex-direction:column;min-width:0;overflow:hidden}
+.ch-head{padding:11px 14px;border-bottom:0.5px solid var(--border);display:flex;align-items:center;gap:7px;flex-shrink:0}
+.ch-head-name{font-size:14px;font-weight:500;color:var(--text)}
+.ch-head-desc{font-size:12px;color:var(--text3);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.posts-area{flex:1;overflow-y:auto;padding:12px 14px;display:flex;flex-direction:column;gap:10px}
+.post-item{display:flex;gap:8px}
+.post-body{flex:1;min-width:0}
+.post-meta{display:flex;align-items:baseline;gap:5px;margin-bottom:2px;flex-wrap:wrap}
+.uname{font-size:13px;font-weight:500;color:var(--text)}
+.chara-name{font-size:11px;color:var(--text3);font-style:italic}
+.badge{font-size:10px;padding:1px 5px;border-radius:4px;background:var(--accent-light);color:var(--accent)}
+.ts{font-size:11px;color:var(--text3)}
+.post-text{font-size:14px;color:var(--text);line-height:1.65;word-break:break-word;white-space:pre-wrap}
+.post-text .jibun{color:var(--text3);font-style:italic;font-size:13px}
+.post-img{max-width:240px;max-height:160px;object-fit:cover;border-radius:var(--radius);margin-top:4px;display:block;cursor:pointer}
+.quote-blk{background:var(--bg2);border-left:3px solid var(--accent-mid);border-radius:0 7px 7px 0;padding:5px 8px;margin-bottom:5px;font-size:12px;color:var(--text2)}
+.quote-author{font-weight:500;color:var(--text);margin-right:4px;font-size:11px}
+.actions{display:flex;flex-wrap:wrap;gap:4px;margin-top:5px;align-items:center}
+.hana-btn{display:flex;align-items:center;gap:3px;background:var(--bg2);border:0.5px solid var(--border);border-radius:12px;padding:3px 9px;font-size:12px;cursor:pointer;color:var(--text2);transition:all .15s}
+.hana-btn.lit{background:#fff0f5;border-color:#f4c0d1;color:#72243e}
+.act-btn{background:none;border:0.5px solid var(--border);border-radius:12px;padding:3px 9px;font-size:12px;cursor:pointer;color:var(--text2);display:flex;align-items:center;gap:3px;transition:all .15s}
+.act-btn:hover{border-color:var(--border2);color:var(--text)}
+.kaki-area{margin-top:6px;padding-top:6px;border-top:0.5px solid var(--border)}
+.kaki-row{font-size:12px;color:var(--text2);margin-bottom:4px;padding-left:4px}
+.kaki-author{font-weight:500;color:var(--text);margin-right:3px}
+.ki-row{display:flex;gap:5px;margin-top:5px}
+.ki-row input{flex:1;font-size:13px;padding:5px 10px;border:0.5px solid var(--border2);border-radius:12px;background:var(--bg2);color:var(--text);outline:none}
+.ki-row input:focus{border-color:var(--accent)}
+.ki-send{background:var(--accent);border:none;border-radius:50%;width:26px;height:26px;cursor:pointer;color:#fff;font-size:13px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.compose{padding:10px 14px;border-top:0.5px solid var(--border);flex-shrink:0}
+.q-prev{background:var(--bg2);border-left:3px solid var(--accent-mid);border-radius:0 7px 7px 0;padding:5px 8px;margin-bottom:6px;font-size:12px;color:var(--text2);display:flex;align-items:flex-start;gap:5px}
+.q-cancel{background:none;border:none;cursor:pointer;color:var(--text3);font-size:14px;padding:0;margin-left:auto;line-height:1}
+.compose-inner{display:flex;gap:6px;align-items:flex-end;background:var(--bg2);border:0.5px solid var(--border2);border-radius:var(--radius-lg);padding:8px 10px}
+.compose-inner:focus-within{border-color:var(--accent)}
+.compose-inner textarea{flex:1;font-size:14px;line-height:1.5;border:none;outline:none;resize:none;background:transparent;color:var(--text);min-height:32px;max-height:100px}
+.compose-inner textarea::placeholder{color:var(--text3)}
+.ic-btn{background:none;border:none;cursor:pointer;color:var(--text3);font-size:20px;padding:1px;display:flex;align-items:center}
+.ic-btn:hover{color:var(--text)}
+.send-btn{background:var(--accent);border:none;border-radius:8px;padding:6px 11px;color:#fff;font-size:13px;cursor:pointer;display:flex;align-items:center}
+.send-btn:hover{opacity:.85}
+.panel{padding:16px;flex:1;overflow-y:auto}
+.panel h3{font-size:15px;font-weight:500;color:var(--text);margin-bottom:14px}
+.fl{display:flex;flex-direction:column;gap:6px;margin-bottom:10px}
+.fl label{font-size:12px;color:var(--text2)}
+.fl input,.fl select{font-size:14px;padding:8px 10px;border:0.5px solid var(--border2);border-radius:var(--radius);background:var(--bg);color:var(--text);outline:none;width:100%}
+.fl input:focus,.fl select:focus{border-color:var(--accent)}
+.fr{display:flex;gap:8px;justify-content:flex-end;margin-top:14px}
+.btn-p{background:var(--accent);color:#fff;border:none;border-radius:var(--radius);padding:8px 16px;font-size:14px;cursor:pointer;font-weight:500}
+.btn-p:hover{opacity:.85}
+.btn-g{background:none;border:0.5px solid var(--border2);border-radius:var(--radius);padding:8px 16px;font-size:14px;cursor:pointer;color:var(--text2)}
+.btn-g:hover{background:var(--bg2)}
+.mem-row{display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:0.5px solid var(--border)}
+.mem-row:last-child{border:none}
+.status-bar{padding:8px 12px;font-size:12px;border-radius:var(--radius);margin-bottom:10px}
+.status-bar.ok{background:#e1f5ee;color:#085041}
+.status-bar.err{background:#fcebeb;color:#791f1f}
+.status-bar.loading{background:var(--bg2);color:var(--text2)}
+.theme-sw{width:26px;height:26px;border-radius:50%;cursor:pointer;border:2px solid transparent;flex-shrink:0;transition:border-color .15s}
+.theme-sw.sel{border-color:var(--text)}
+.empty{text-align:center;padding:40px 20px;color:var(--text3);font-size:14px}
+.empty i{font-size:32px;display:block;margin-bottom:8px}
+.img-preview{height:48px;border-radius:7px;object-fit:cover}
+#file-input{display:none}
+.img-lightbox{position:fixed;inset:0;background:rgba(0,0,0,.8);display:flex;align-items:center;justify-content:center;z-index:999;cursor:pointer}
+.img-lightbox img{max-width:90vw;max-height:90vh;border-radius:var(--radius-lg)}
+.back-btn{background:none;border:none;cursor:pointer;color:var(--text2);font-size:13px;display:flex;align-items:center;gap:4px;padding:0;margin-bottom:14px}
+</style>
+</head>
+<body>
+<div class="layout">
+  <div class="sidebar" id="sidebar"></div>
+  <div class="main" id="main"></div>
+</div>
+<input type="file" id="file-input" accept="image/*">
+<script>
+const SUPA_URL='https://mgqnofmgnvzznfuoxfur.supabase.co';
+const SUPA_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1ncW5vZm1nbnZ6em5mdW94ZnVyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk2MDM5OTQsImV4cCI6MjA5NTE3OTk5NH0.F9mw65DEnmwGsHf2iMO2CXktAhGUB7VRn8o-Xud95iI';
+const sb=supabase.createClient(SUPA_URL,SUPA_KEY);
 
+const THEMES=[
+  {name:'紫苑',accent:'#534AB7',light:'#EEEDFE',mid:'#AFA9EC'},
+  {name:'翠緑',accent:'#0F6E56',light:'#E1F5EE',mid:'#9FE1CB'},
+  {name:'珊瑚',accent:'#993C1D',light:'#FAECE7',mid:'#F5C4B3'},
+  {name:'瑠璃',accent:'#185FA5',light:'#E6F1FB',mid:'#B5D4F4'},
+];
+const AVC=[
+  {bg:'#EEEDFE',fg:'#3C3489'},{bg:'#E1F5EE',fg:'#085041'},
+  {bg:'#E6F1FB',fg:'#0C447C'},{bg:'#FAEEDA',fg:'#633806'},
+  {bg:'#FBEAF0',fg:'#72243E'},{bg:'#EAF3DE',fg:'#27500A'},
+];
+const EMOJI_LIST=['😀','😄','😊','🥰','😎','🤩','😋','🤔','😴','🥺','😭','😤','🤗','👻','🐱','🐶','🐼','🦊','🐸','🦋','🌸','🌺','🌻','🌈','⭐','🌙','☀️','🍓','🍰','🎮','🎵','🎨','📚','✏️','💫','🔥','💎','🌊','🍀','🦄','🐰','⚠️','🌿'];
+
+function avc(n){let h=0;for(let c of(n||''))h=(h*31+c.charCodeAt(0))%AVC.length;return AVC[h]}
+function ini(n){return(n||'?')[0].toUpperCase()}
+function ago(ts){
+  const d=Date.now()-new Date(ts).getTime();
+  if(d<60000)return'たった今';
+  if(d<3600000)return Math.floor(d/60000)+'分前';
+  if(d<86400000)return Math.floor(d/3600000)+'時間前';
+  return Math.floor(d/86400000)+'日前';
+}
+
+// ()で囲まれた地の文を斜体グレーにする
+function formatText(text){
+  if(!text)return'';
+  return text.replace(/\(([^)]+)\)/g,'<span class="jibun">($1)</span>');
+}
+
+const S={
+  screen:'login',me:null,typing:{},
+  channels:[],posts:[],kaki:{},
+  openKaki:{},activeChId:null,
+  pendingImg:null,pendingQuote:null,
+  view:'chat',themeIdx:0,
+  serverName:'Discord Tricolore',serverIcon:'🎭',
+  members:[],status:null,allowedNames:[],
+  unread:{},sidebarOpen:false,
+};
+let rtChannel=null;
+let broadcastChannel=null;
+let notifyChannel=null;
+let typingDisplayTimer=null;
+
+function applyTheme(i){
+  const t=THEMES[i||0];
+  document.documentElement.style.setProperty('--accent',t.accent);
+  document.documentElement.style.setProperty('--accent-light',t.light);
+  document.documentElement.style.setProperty('--accent-mid',t.mid);
+}
+function setStatus(msg,type='loading'){S.status={msg,type};render()}
+function clearStatus(){S.status=null;render()}
+
+async function loadChannels(){
+  const{data}=await sb.from('nariki_channels').select('*').order('created_at');
+  S.channels=data||[];
+  if(!S.activeChId&&S.channels.length)S.activeChId=S.channels[0].id;
+}
+
+async function loadPosts(){
+  if(!S.activeChId)return;
+  const{data}=await sb.from('nariki_posts').select('*')
+    .eq('channel_id',S.activeChId)
+    .order('created_at',{ascending:false}).limit(60);
+  S.posts=data||[];
+  if(S.posts.length){
+    const ids=S.posts.map(p=>p.id);
+    const{data:kd}=await sb.from('nariki_kaki').select('*').in('post_id',ids).order('created_at');
+    S.kaki={};
+    for(const k of(kd||[])){
+      if(!S.kaki[k.post_id])S.kaki[k.post_id]=[];
+      S.kaki[k.post_id].push(k);
+    }
+  }
+}
+
+async function loadMembers(){
+  const{data}=await sb.from('nariki_members').select('*').order('created_at');
+  S.members=data||[];
+}
+
+async function loadAllowedNames(){
+  const{data}=await sb.from('nariki_allowed').select('*').order('created_at');
+  S.allowedNames=data||[];
+}
+
+function startNotifyChannel(){
+  if(notifyChannel)return;
+  notifyChannel=sb.channel('tricolore-notify',{config:{broadcast:{self:false}}})
+    .on('broadcast',{event:'new_post'},(payload)=>{
+      const chId=payload.payload?.chId;
+      const userName=payload.payload?.userName;
+      if(!chId||chId===S.activeChId)return;
+      if(userName===S.me?.name)return;
+      S.unread[chId]=true;
+      render();
+    })
+    .subscribe();
+}
+
+function setupRealtime(){
+  if(rtChannel)sb.removeChannel(rtChannel);
+  rtChannel=sb.channel('tricolore-rt-'+S.activeChId)
+    .on('postgres_changes',{event:'*',schema:'public',table:'nariki_posts',filter:`channel_id=eq.${S.activeChId}`},async()=>{
+      await loadPosts();render();
+    })
+    .on('postgres_changes',{event:'*',schema:'public',table:'nariki_kaki'},async()=>{
+      if(!S.posts.length)return;
+      const ids=S.posts.map(p=>p.id);
+      const{data}=await sb.from('nariki_kaki').select('*').in('post_id',ids).order('created_at');
+      S.kaki={};
+      for(const k of(data||[])){if(!S.kaki[k.post_id])S.kaki[k.post_id]=[];S.kaki[k.post_id].push(k)}
+      render();
+    })
+    .on('postgres_changes',{event:'*',schema:'public',table:'nariki_members'},async()=>{
+      await loadMembers();
+      S.me=S.members.find(m=>m.name===S.me?.name)||S.me;
+      render();
+    })
+    .subscribe();
+
+  if(broadcastChannel)sb.removeChannel(broadcastChannel);
+  broadcastChannel=sb.channel('tricolore-typing-'+S.activeChId,{config:{broadcast:{self:false}}})
+    .on('broadcast',{event:'typing'},(payload)=>{
+      const{name}=payload.payload;
+      if(name===S.me?.name)return;
+      S.typing[name]=Date.now();
+      updateTypingDisplay();
+    })
+    .subscribe();
+}
+
+function updateTypingDisplay(){
+  const now=Date.now();
+  const active=Object.entries(S.typing).filter(([n,t])=>now-t<3000).map(([n])=>n);
+  const el=document.getElementById('typing-indicator');
+  if(el){
+    if(active.length===0)el.textContent='';
+    else if(active.length===1)el.textContent=`${active[0]}が入力中…`;
+    else el.textContent=`${active.join('、')}が入力中…`;
+  }
+  if(typingDisplayTimer)clearTimeout(typingDisplayTimer);
+  if(active.length>0)typingDisplayTimer=setTimeout(updateTypingDisplay,1000);
+}
+
+function sendTyping(){
+  if(!broadcastChannel||!S.me)return;
+  broadcastChannel.send({type:'broadcast',event:'typing',payload:{name:S.me.chara_name||S.me.name}});
+}
+
+async function doLogin(){
+  const name=(document.getElementById('l-name').value||'').trim();
+  const pass=(document.getElementById('l-pass').value||'').trim();
+  if(!name){setStatus('名前を入力してください','err');return}
+  setStatus('確認中…');
+  const{data:allowed}=await sb.from('nariki_allowed').select('*').eq('name',name).maybeSingle();
+  if(!allowed){setStatus('この名前は登録されていません。主催者に招待してもらってください。','err');return}
+  if(allowed.password&&allowed.password!==pass){setStatus('合言葉が違います','err');return}
+  let{data:ex}=await sb.from('nariki_members').select('*').eq('name',name).maybeSingle();
+  if(!ex){
+    const{data:cr,error}=await sb.from('nariki_members').insert({name,role:'member'}).select().single();
+    if(error){setStatus('エラーが発生しました','err');return}
+    ex=cr;
+  }
+  S.me=ex;S.screen='app';
+  setStatus('読み込んでいます…');
+  await loadChannels();
+  await loadMembers();
+  S.me=S.members.find(m=>m.name===ex.name)||ex;
+  await loadPosts();
+  setupRealtime();
+  startNotifyChannel();
+  clearStatus();
+}
+
+async function switchCh(id){
+  S.activeChId=id;S.unread[id]=false;S.sidebarOpen=false;
+  S.view='chat';S.posts=[];S.kaki={};S.openKaki={};
+  render();
+  await loadPosts();
+  setupRealtime();
+  render();
+}
+
+async function addChannel(){
+  const name=prompt('新しいチャンネル名：');
+  if(!name||!name.trim())return;
+  const{data,error}=await sb.from('nariki_channels').insert({name:name.trim(),description:''}).select().single();
+  if(error){alert('作れませんでした：'+error.message);return}
+  if(data){
+    S.channels.push(data);S.activeChId=data.id;S.view='chat';
+    S.posts=[];S.kaki={};S.openKaki={};
+    render();await loadPosts();setupRealtime();render();
+  }
+}
+
+async function deleteCh(id){
+  if(!confirm('このチャンネルを削除しますか？'))return;
+  const{error}=await sb.from('nariki_channels').delete().eq('id',id);
+  if(error){alert('削除できませんでした：'+error.message);return}
+  S.channels=S.channels.filter(c=>c.id!==id);
+  if(S.activeChId===id)S.activeChId=S.channels[0]?.id||null;
+  S.view='settings';await loadAllowedNames();await loadPosts();render();
+}
+
+async function submitPost(){
+  const el=document.getElementById('compose-text');
+  const text=(el&&el.value.trim())||'';
+  if(!text&&!S.pendingImg)return;
+  const post={
+    channel_id:S.activeChId,
+    user_name:S.me.name,
+    chara_name:S.me.chara_name||'',
+    user_role:S.me.role,
+    text,img_url:S.pendingImg||null,
+    quote:S.pendingQuote||null,
+    hana:0,hana_by:[],
+  };
+  if(el)el.value='';
+  S.pendingImg=null;S.pendingQuote=null;
+  document.getElementById('file-input').value='';
+  render();
+  await sb.from('nariki_posts').insert(post);
+  if(notifyChannel)notifyChannel.send({type:'broadcast',event:'new_post',payload:{chId:S.activeChId,userName:S.me.name}});
+}
+
+async function toggleHana(pid){
+  const p=S.posts.find(p=>p.id===pid);if(!p)return;
+  const by=p.hana_by||[];
+  let newBy,newCount;
+  if(by.includes(S.me.name)){newBy=by.filter(n=>n!==S.me.name);newCount=Math.max(0,(p.hana||0)-1);}
+  else{newBy=[...by,S.me.name];newCount=(p.hana||0)+1;}
+  p.hana_by=newBy;p.hana=newCount;render();
+  await sb.from('nariki_posts').update({hana:newCount,hana_by:newBy}).eq('id',pid);
+}
+
+async function addKaki(pid){
+  const inp=document.getElementById('ki-'+pid);
+  if(!inp||!inp.value.trim())return;
+  const text=inp.value.trim();inp.value='';
+  await sb.from('nariki_kaki').insert({post_id:pid,user_name:S.me.name,text});
+}
+
+async function deletePost(pid){
+  if(!confirm('この投稿を削除しますか？'))return;
+  await sb.from('nariki_posts').delete().eq('id',pid);
+  S.posts=S.posts.filter(p=>p.id!==pid);render();
+}
+
+async function changeRole(name,role){
+  await sb.from('nariki_members').update({role}).eq('name',name);
+  await loadMembers();render();
+}
+
+async function kickMember(name){
+  if(!confirm(`${name}さんを除外しますか？`))return;
+  await sb.from('nariki_members').delete().eq('name',name);
+  await loadMembers();render();
+}
+
+function handleImg(e){
+  const f=e.target.files[0];if(!f)return;
+  const r=new FileReader();
+  r.onload=ev=>{S.pendingImg=ev.target.result;render()};
+  r.readAsDataURL(f);
+}
+
+function openLightbox(src){
+  const lb=document.createElement('div');
+  lb.className='img-lightbox';
+  lb.innerHTML=`<img src="${src}" alt="拡大">`;
+  lb.onclick=()=>lb.remove();
+  document.body.appendChild(lb);
+}
+
+function showEmojiPicker(){
+  const existing=document.getElementById('emoji-overlay');
+  if(existing){existing.remove();return}
+  const wrap=document.createElement('div');
+  wrap.id='emoji-overlay';
+  wrap.style.cssText='position:fixed;inset:0;z-index:9999;display:flex;align-items:flex-end;justify-content:flex-start;padding:0 0 70px 10px';
+  const box=document.createElement('div');
+  box.style.cssText='background:#fff;border-radius:14px;padding:14px;width:260px;box-shadow:0 4px 24px rgba(0,0,0,0.18)';
+  const title=document.createElement('div');
+  title.textContent='アイコンを選ぶ';
+  title.style.cssText='font-size:13px;font-weight:500;color:#1a1a1a;margin-bottom:10px';
+  box.appendChild(title);
+  const grid=document.createElement('div');
+  grid.style.cssText='display:grid;grid-template-columns:repeat(7,1fr);gap:3px;margin-bottom:10px';
+  EMOJI_LIST.forEach(e=>{
+    const btn=document.createElement('button');
+    btn.textContent=e;
+    btn.style.cssText='font-size:22px;background:none;border:none;cursor:pointer;padding:3px;border-radius:6px;line-height:1.2';
+    btn.onclick=function(){pickEmoji(btn.textContent)};
+    grid.appendChild(btn);
+  });
+  box.appendChild(grid);
+  const reset=document.createElement('button');
+  reset.textContent='頭文字に戻す';
+  reset.style.cssText='width:100%;font-size:12px;color:#555;background:none;border:1px solid #ccc;border-radius:8px;padding:6px;cursor:pointer';
+  reset.onclick=()=>pickEmoji('');
+  box.appendChild(reset);
+  wrap.appendChild(box);
+  wrap.onclick=(e)=>{if(e.target===wrap)wrap.remove()};
+  document.body.appendChild(wrap);
+}
+
+async function pickEmoji(emoji){
+  const wrap=document.getElementById('emoji-overlay');
+  if(wrap)wrap.remove();
+  const result=await sb.from('nariki_members').update({emoji}).eq('name',S.me.name).select();
+  if(result.error)return;
+  S.me=result.data[0];
+  await loadMembers();render();
+}
+
+function showCharaEditor(){
+  const existing=document.getElementById('chara-overlay');
+  if(existing){existing.remove();return}
+  const wrap=document.createElement('div');
+  wrap.id='chara-overlay';
+  wrap.style.cssText='position:fixed;inset:0;z-index:9999;display:flex;align-items:flex-end;justify-content:flex-start;padding:0 0 70px 10px';
+  const box=document.createElement('div');
+  box.style.cssText='background:#fff;border-radius:14px;padding:14px;width:260px;box-shadow:0 4px 24px rgba(0,0,0,0.18)';
+  const title=document.createElement('div');
+  title.textContent='キャラ名を設定';
+  title.style.cssText='font-size:13px;font-weight:500;color:#1a1a1a;margin-bottom:4px';
+  box.appendChild(title);
+  const note=document.createElement('div');
+  note.textContent='投稿に表示されるキャラクター名です';
+  note.style.cssText='font-size:11px;color:#999;margin-bottom:10px';
+  box.appendChild(note);
+  const input=document.createElement('input');
+  input.type='text';
+  input.placeholder='例：アリス、勇者ケン';
+  input.maxLength=30;
+  input.value=S.me?.chara_name||'';
+  input.style.cssText='width:100%;font-size:13px;padding:8px 10px;border:1px solid #ddd;border-radius:8px;outline:none;margin-bottom:8px;box-sizing:border-box';
+  box.appendChild(input);
+  const btnRow=document.createElement('div');
+  btnRow.style.cssText='display:flex;gap:6px';
+  const clearBtn=document.createElement('button');
+  clearBtn.textContent='消す';
+  clearBtn.style.cssText='flex:1;font-size:12px;color:#555;background:none;border:1px solid #ccc;border-radius:8px;padding:7px;cursor:pointer';
+  clearBtn.onclick=()=>saveChara('');
+  const saveBtn=document.createElement('button');
+  saveBtn.textContent='設定する';
+  saveBtn.style.cssText='flex:2;font-size:13px;color:#fff;background:var(--accent);border:none;border-radius:8px;padding:7px;cursor:pointer;font-weight:500';
+  saveBtn.onclick=()=>saveChara(input.value.trim());
+  btnRow.appendChild(clearBtn);btnRow.appendChild(saveBtn);
+  box.appendChild(btnRow);
+  wrap.appendChild(box);
+  wrap.onclick=(e)=>{if(e.target===wrap)wrap.remove()};
+  document.body.appendChild(wrap);
+  setTimeout(()=>input.focus(),50);
+}
+
+async function saveChara(chara_name){
+  const wrap=document.getElementById('chara-overlay');
+  if(wrap)wrap.remove();
+  await sb.from('nariki_members').update({chara_name}).eq('name',S.me.name);
+  S.me.chara_name=chara_name;
+  await loadMembers();render();
+}
+
+function showStatusEditor(){
+  const existing=document.getElementById('status-overlay');
+  if(existing){existing.remove();return}
+  const wrap=document.createElement('div');
+  wrap.id='status-overlay';
+  wrap.style.cssText='position:fixed;inset:0;z-index:9999;display:flex;align-items:flex-end;justify-content:flex-start;padding:0 0 70px 10px';
+  const box=document.createElement('div');
+  box.style.cssText='background:#fff;border-radius:14px;padding:14px;width:260px;box-shadow:0 4px 24px rgba(0,0,0,0.18)';
+  const title=document.createElement('div');
+  title.textContent='今日の一言';
+  title.style.cssText='font-size:13px;font-weight:500;color:#1a1a1a;margin-bottom:10px';
+  box.appendChild(title);
+  const input=document.createElement('input');
+  input.type='text';
+  input.placeholder='今の気分は？';
+  input.maxLength=40;
+  input.value=S.me?.status_msg||'';
+  input.style.cssText='width:100%;font-size:13px;padding:8px 10px;border:1px solid #ddd;border-radius:8px;outline:none;margin-bottom:8px;box-sizing:border-box';
+  box.appendChild(input);
+  const btnRow=document.createElement('div');
+  btnRow.style.cssText='display:flex;gap:6px';
+  const clearBtn=document.createElement('button');
+  clearBtn.textContent='消す';
+  clearBtn.style.cssText='flex:1;font-size:12px;color:#555;background:none;border:1px solid #ccc;border-radius:8px;padding:7px;cursor:pointer';
+  clearBtn.onclick=()=>saveStatus('');
+  const saveBtn=document.createElement('button');
+  saveBtn.textContent='設定する';
+  saveBtn.style.cssText='flex:2;font-size:13px;color:#fff;background:var(--accent);border:none;border-radius:8px;padding:7px;cursor:pointer;font-weight:500';
+  saveBtn.onclick=()=>saveStatus(input.value.trim());
+  btnRow.appendChild(clearBtn);btnRow.appendChild(saveBtn);
+  box.appendChild(btnRow);
+  wrap.appendChild(box);
+  wrap.onclick=(e)=>{if(e.target===wrap)wrap.remove()};
+  document.body.appendChild(wrap);
+  setTimeout(()=>input.focus(),50);
+}
+
+async function saveStatus(msg){
+  const wrap=document.getElementById('status-overlay');
+  if(wrap)wrap.remove();
+  await sb.from('nariki_members').update({status_msg:msg}).eq('name',S.me.name);
+  S.me.status_msg=msg;
+  await loadMembers();render();
+}
+
+function render(){
+  applyTheme(S.themeIdx);
+  if(S.screen==='login'){
+    document.getElementById('sidebar').innerHTML='';
+    document.getElementById('main').innerHTML=renderLogin();
+    return;
+  }
+  const sidebarEl=document.getElementById('sidebar');
+  sidebarEl.className='sidebar'+(S.sidebarOpen?' open':'');
+  sidebarEl.innerHTML='<div class="sidebar-inner">'+renderSidebar()+'</div>';
+  sidebarEl.onclick=(e)=>{if(e.target===sidebarEl){S.sidebarOpen=false;render()}};
+  document.getElementById('main').innerHTML=renderMain();
+  document.getElementById('file-input').onchange=handleImg;
+}
+
+function renderLogin(){
+  return `<div style="display:flex;align-items:center;justify-content:center;flex:1;padding:24px">
+    <div style="width:100%;max-width:300px">
+      <div style="text-align:center;margin-bottom:24px">
+        <div style="font-size:40px;margin-bottom:8px">${S.serverIcon}</div>
+        <div style="font-size:18px;font-weight:500;color:var(--text)">${S.serverName}</div>
+        <div style="font-size:13px;color:var(--text3);margin-top:4px">招待された人だけ入れます</div>
+      </div>
+      ${S.status?`<div class="status-bar ${S.status.type}">${S.status.msg}</div>`:''}
+      <div class="fl" style="margin-bottom:8px">
+        <label>あなたの名前</label>
+        <input id="l-name" placeholder="例：ゆかり" style="font-size:15px;padding:10px 12px" onkeydown="if(event.key==='Enter')doLogin()">
+      </div>
+      <div class="fl" style="margin-bottom:14px">
+        <label>合言葉（設定されている場合）</label>
+        <input id="l-pass" type="password" placeholder="合言葉を入力" style="font-size:15px;padding:10px 12px" onkeydown="if(event.key==='Enter')doLogin()">
+      </div>
+      <button class="btn-p" onclick="doLogin()" style="width:100%;padding:10px;font-size:15px">入る</button>
+    </div>
+  </div>`;
+}
+
+function renderSidebar(){
+  const av=avc(S.me?.name||'');
+  const myEmoji=S.me?.emoji||'';
+  return `
+    <div class="srv-head">
+      <div class="srv-icon">${S.serverIcon}</div>
+      <span class="srv-name">${S.serverName}</span>
+    </div>
+    <div class="sb-scroll">
+      <div class="sec-label">
+        <span class="sec-label-text">チャンネル</span>
+        ${S.me?.role==='admin'?`<button class="add-btn" onclick="addChannel()"><i class="ti ti-plus"></i></button>`:''}
+      </div>
+      ${S.channels.map(ch=>{
+        const hasUnread=S.unread[ch.id]&&ch.id!==S.activeChId;
+        return `<button class="ch-btn${S.activeChId===ch.id&&S.view==='chat'?' active':''}" onclick="switchCh('${ch.id}')">
+          <i class="ti ti-hash"></i>
+          <span style="flex:1;overflow:hidden;text-overflow:ellipsis">${ch.name}</span>
+          ${hasUnread?'<span style="width:8px;height:8px;border-radius:50%;background:#E5534B;flex-shrink:0;display:inline-block"></span>':''}
+        </button>`;
+      }).join('')}
+      <div class="sec-label" style="margin-top:8px">メニュー</div>
+      <button class="ch-btn${S.view==='members'?' active':''}" onclick="S.sidebarOpen=false;showMembers()">
+        <i class="ti ti-users"></i><span>メンバー</span>
+      </button>
+      <button class="ch-btn${S.view==='invite'?' active':''}" onclick="S.sidebarOpen=false;S.view='invite';render()">
+        <i class="ti ti-link"></i><span>招待リンク</span>
+      </button>
+      ${S.me?.role==='admin'?`<button class="ch-btn${S.view==='settings'?' active':''}" onclick="S.sidebarOpen=false;openSettings()"><i class="ti ti-settings"></i><span>設定</span></button>`:''}
+    </div>
+    <div style="border-top:0.5px solid var(--border);flex-shrink:0">
+      ${S.me?.chara_name?`<div style="padding:4px 12px 0;font-size:11px;color:var(--accent);font-style:italic;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">🎭 ${S.me.chara_name}</div>`:''}
+      ${S.me?.status_msg?`<div style="padding:2px 12px 0;font-size:11px;color:var(--text3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${S.me.status_msg}</div>`:''}
+      <div class="sb-footer" style="border-top:none;padding-top:6px">
+        <div onclick="showEmojiPicker()" style="cursor:pointer" title="アイコンを変える">
+          <div class="av" style="width:28px;height:28px;font-size:${myEmoji?'18':'11'}px;background:${av.bg};color:${av.fg}">${myEmoji||ini(S.me?.name)}</div>
+        </div>
+        <div style="flex:1;overflow:hidden">
+          <div class="sb-name">${S.me?.name||''}${S.me?.role==='admin'?' <span class="badge">主催</span>':''}</div>
+        </div>
+        <button onclick="showCharaEditor()" style="background:none;border:none;cursor:pointer;color:var(--text3);font-size:15px;padding:2px;display:flex;flex-shrink:0" title="キャラ名を設定"><i class="ti ti-masks-theater"></i></button>
+        <button onclick="showStatusEditor()" style="background:none;border:none;cursor:pointer;color:var(--text3);font-size:15px;padding:2px;display:flex;flex-shrink:0" title="一言を設定"><i class="ti ti-pencil"></i></button>
+      </div>
+    </div>`;
+}
+
+function renderMain(){
+  if(S.view==='members')return renderMembers();
+  if(S.view==='invite')return renderInvite();
+  if(S.view==='settings')return renderSettings();
+  return renderChat();
+}
+
+function renderChat(){
+  const ch=S.channels.find(c=>c.id===S.activeChId);
+  if(!ch)return`<div class="empty"><i class="ti ti-hash"></i>チャンネルを選んでください</div>`;
+  const postsHtml=S.posts.length===0
+    ?`<div class="empty"><i class="ti ti-hash"></i>#${ch.name}へようこそ<br>最初のメッセージを送ろう</div>`
+    :S.posts.map(renderPost).join('');
+  const qprev=S.pendingQuote?`
+    <div class="q-prev">
+      <div style="flex:1">
+        <span style="font-size:10px;color:var(--text3)">引用：</span>
+        <span style="font-weight:500;font-size:12px;color:var(--text)">${S.pendingQuote.chara_name||S.pendingQuote.user_name}</span>
+        <div style="font-size:11px;color:var(--text2);margin-top:1px">${(S.pendingQuote.text||'').slice(0,50)}</div>
+      </div>
+      <button class="q-cancel" onclick="S.pendingQuote=null;render()"><i class="ti ti-x"></i></button>
+    </div>`:'';
+  return `
+    <div class="ch-head">
+      <button class="hamburger" onclick="S.sidebarOpen=true;render()"><i class="ti ti-menu-2"></i></button>
+      <i class="ti ti-hash" style="font-size:15px;color:var(--text3)"></i>
+      <span class="ch-head-name">${ch.name}</span>
+      <span class="ch-head-desc">${ch.description||''}</span>
+    </div>
+    <div class="posts-area" id="posts-area">${postsHtml}</div>
+    <div id="typing-indicator" style="padding:2px 14px 0;font-size:12px;color:var(--text3);min-height:18px"></div>
+    <div class="compose">
+      ${S.pendingImg?`<div style="padding-bottom:6px;display:flex;align-items:center;gap:6px"><img src="${S.pendingImg}" class="img-preview" alt="プレビュー"><button onclick="S.pendingImg=null;render()" style="background:none;border:none;cursor:pointer;font-size:12px;color:var(--text2)">取り消し</button></div>`:''}
+      ${qprev}
+      <div class="compose-inner">
+        <textarea id="compose-text" placeholder="${ch.name}にメッセージを送る…" rows="1"
+          oninput="this.style.height='auto';this.style.height=Math.min(this.scrollHeight,100)+'px';sendTyping()"></textarea>
+        <div style="display:flex;gap:4px;align-items:center;flex-shrink:0">
+          <button class="ic-btn" onclick="document.getElementById('file-input').click()"><i class="ti ti-photo"></i></button>
+          <button class="send-btn" onclick="submitPost()"><i class="ti ti-send" style="font-size:14px"></i></button>
+        </div>
+      </div>
+    </div>`;
+}
+
+function renderPost(p){
+  const av=avc(p.user_name);
+  const by=p.hana_by||[];
+  const iHana=by.includes(S.me?.name||'');
+  const kakis=S.kaki[p.id]||[];
+  const openK=S.openKaki[p.id];
+  const posterMember=S.members.find(m=>m.name===p.user_name);
+  const posterEmoji=posterMember?.emoji||'';
+  const displayName=p.chara_name||p.user_name;
+  return `<div class="post-item" id="post-${p.id}">
+    <div class="av" style="width:32px;height:32px;font-size:${posterEmoji?'18':'12'}px;background:${av.bg};color:${av.fg};margin-top:2px;flex-shrink:0">${posterEmoji||ini(p.user_name)}</div>
+    <div class="post-body">
+      <div class="post-meta">
+        <span class="uname">${displayName}</span>
+        ${p.chara_name?`<span class="chara-name">(${p.user_name})</span>`:''}
+        ${p.user_role==='admin'?'<span class="badge">主催</span>':''}
+        <span class="ts">${ago(p.created_at)}</span>
+        ${(S.me?.role==='admin'||p.user_name===S.me?.name)?`<button onclick="deletePost('${p.id}')" style="background:none;border:none;cursor:pointer;font-size:11px;color:var(--text3);margin-left:auto"><i class="ti ti-trash"></i></button>`:''}
+      </div>
+      ${p.quote?`<div class="quote-blk"><span class="quote-author">${p.quote.chara_name||p.quote.user_name}</span>${(p.quote.text||'').slice(0,60)}${(p.quote.text||'').length>60?'…':''}</div>`:''}
+      ${p.text?`<div class="post-text">${formatText(p.text)}</div>`:''}
+      ${p.img_url?`<img class="post-img" src="${p.img_url}" alt="画像" onclick="openLightbox('${p.img_url}')">`:''}
+      <div class="actions">
+        <button class="hana-btn${iHana?' lit':''}" onclick="toggleHana('${p.id}')">🌸 ${p.hana>0?p.hana:''}</button>
+        <button class="act-btn" onclick="S.openKaki['${p.id}']=!S.openKaki['${p.id}'];render()"><i class="ti ti-pencil" style="font-size:11px"></i>${kakis.length>0?kakis.length:''}</button>
+        <button class="act-btn" onclick="startQuote('${p.id}')"><i class="ti ti-corner-up-left" style="font-size:11px"></i>返信</button>
+        <button class="act-btn" onclick="startQuoteRef('${p.id}')"><i class="ti ti-quote" style="font-size:11px"></i>引用</button>
+      </div>
+      ${openK?`<div class="kaki-area">
+        ${kakis.map(k=>`<div class="kaki-row"><span class="kaki-author">${k.user_name}</span>${k.text}</div>`).join('')}
+        <div class="ki-row">
+          <input id="ki-${p.id}" placeholder="コメント…" onkeydown="if(event.key==='Enter')addKaki('${p.id}')">
+          <button class="ki-send" onclick="addKaki('${p.id}')"><i class="ti ti-send"></i></button>
+        </div>
+      </div>`:''}
+    </div>
+  </div>`;
+}
+
+function startQuote(pid){
+  const p=S.posts.find(p=>p.id===pid);if(!p)return;
+  S.pendingQuote=p;S.view='chat';render();
+  setTimeout(()=>{const el=document.getElementById('compose-text');if(el)el.focus()},50);
+}
+function startQuoteRef(pid){startQuote(pid);}
+
+async function showMembers(){
+  S.view='members';await loadMembers();render();
+}
+
+function renderMembers(){
+  return `<div class="panel">
+    <button class="back-btn" onclick="S.view='chat';render()"><i class="ti ti-arrow-left" style="font-size:16px"></i>もどる</button>
+    <h3>メンバー (${S.members.length}人)</h3>
+    ${S.members.map(m=>{
+      const av=avc(m.name);const me=m.emoji||'';
+      return `<div class="mem-row">
+        <div class="av" style="width:34px;height:34px;font-size:${me?'20':'13'}px;background:${av.bg};color:${av.fg}">${me||ini(m.name)}</div>
+        <div style="flex:1">
+          <div style="font-size:13px;color:var(--text);font-weight:${m.name===S.me?.name?'500':'400'}">${m.name}${m.name===S.me?.name?' (自分)':''}</div>
+          ${m.chara_name?`<div style="font-size:11px;color:var(--accent);font-style:italic">🎭 ${m.chara_name}</div>`:''}
+          <div style="font-size:11px;color:var(--text3)">${m.role==='admin'?'主催':'参加者'}</div>
+        </div>
+        ${S.me?.role==='admin'&&m.name!==S.me?.name?`
+          <select onchange="changeRole('${m.name}',this.value)" style="font-size:12px;padding:3px 6px;border:0.5px solid var(--border2);border-radius:7px;background:var(--bg);color:var(--text)">
+            <option value="member"${m.role!=='admin'?' selected':''}>参加者</option>
+            <option value="admin"${m.role==='admin'?' selected':''}>主催</option>
+          </select>
+          <button onclick="kickMember('${m.name}')" style="background:none;border:0.5px solid var(--danger);border-radius:7px;padding:4px 8px;font-size:12px;cursor:pointer;color:var(--danger)">除外</button>`:''}
+      </div>`;
+    }).join('')}
+  </div>`;
+}
+
+function renderInvite(){
+  const url=window.location.href;
+  return `<div class="panel">
+    <button class="back-btn" onclick="S.view='chat';render()"><i class="ti ti-arrow-left" style="font-size:16px"></i>もどる</button>
+    <h3>招待リンク</h3>
+    <p style="font-size:13px;color:var(--text2);margin-bottom:12px;line-height:1.6">このURLを信頼できる人にだけ伝えてください。</p>
+    <div style="background:var(--bg2);border-radius:var(--radius);padding:10px 12px;font-size:12px;color:var(--text2);word-break:break-all;margin-bottom:10px;border:0.5px solid var(--border)">${url}</div>
+    <button class="act-btn" onclick="navigator.clipboard.writeText('${url}').then(()=>alert('コピーしました！'))"><i class="ti ti-copy" style="font-size:13px"></i>コピー</button>
+  </div>`;
+}
+
+function renderSettings(){
+  return `<div class="panel">
+    <button class="back-btn" onclick="S.view='chat';render()"><i class="ti ti-arrow-left" style="font-size:16px"></i>もどる</button>
+    <h3>サーバー設定</h3>
+    <div class="fl">
+      <label>サーバー名</label><input id="st-name" value="${S.serverName}">
+      <label>アイコン（絵文字）</label><input id="st-icon" value="${S.serverIcon}" style="max-width:70px">
+      <label>テーマカラー</label>
+      <div style="display:flex;gap:8px;margin-top:4px">
+        ${THEMES.map((t,i)=>`<div class="theme-sw${S.themeIdx===i?' sel':''}" style="background:${t.accent}" onclick="S.themeIdx=${i};render()" title="${t.name}"></div>`).join('')}
+      </div>
+      <label style="margin-top:6px">チャンネル管理</label>
+      ${S.channels.map(ch=>`<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+        <i class="ti ti-hash" style="font-size:13px;color:var(--text3)"></i>
+        <span style="font-size:13px;flex:1;color:var(--text)">${ch.name}</span>
+        ${S.channels.length>1?`<button onclick="deleteCh('${ch.id}')" style="background:none;border:0.5px solid var(--danger);border-radius:7px;padding:3px 8px;font-size:12px;cursor:pointer;color:var(--danger)">削除</button>`:''}
+      </div>`).join('')}
+      <label style="margin-top:6px">招待リスト</label>
+      <div style="margin-bottom:6px">${(S.allowedNames||[]).map(n=>`
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:5px">
+          <i class="ti ti-user" style="font-size:13px;color:var(--text3)"></i>
+          <span style="font-size:13px;flex:1;color:var(--text)">${n.name}</span>
+          ${n.name!==S.me?.name?`<button onclick="removeAllowedName('${n.id}')" style="background:none;border:0.5px solid var(--danger);border-radius:7px;padding:3px 8px;font-size:12px;cursor:pointer;color:var(--danger)">除く</button>`:'<span style="font-size:11px;color:var(--text3)">（自分）</span>'}
+        </div>`).join('')}
+      </div>
+      <div style="display:flex;gap:6px;margin-bottom:6px">
+        <input id="new-allowed" placeholder="名前を追加" style="flex:1;font-size:13px;padding:6px 9px;border:0.5px solid var(--border2);border-radius:var(--radius);background:var(--bg);color:var(--text);outline:none">
+        <input id="new-pass" placeholder="合言葉（任意）" type="password" style="flex:1;font-size:13px;padding:6px 9px;border:0.5px solid var(--border2);border-radius:var(--radius);background:var(--bg);color:var(--text);outline:none">
+        <button class="btn-p" onclick="addAllowedName()" style="padding:6px 12px;font-size:13px">追加</button>
+      </div>
+    </div>
+    <div class="fr">
+      <button class="btn-g" onclick="S.view='chat';render()">もどる</button>
+      <button class="btn-p" onclick="saveSettings()">保存</button>
+    </div>
+  </div>`;
+}
+
+async function addAllowedName(){
+  const inp=document.getElementById('new-allowed');
+  const pinp=document.getElementById('new-pass');
+  const name=(inp?.value||'').trim();
+  const password=(pinp?.value||'').trim()||null;
+  if(!name)return;
+  const{data,error}=await sb.from('nariki_allowed').insert({name,password}).select().single();
+  if(error){alert('すでに登録されているか、エラーが発生しました');return}
+  inp.value='';if(pinp)pinp.value='';
+  await loadAllowedNames();render();
+}
+
+async function removeAllowedName(id){
+  if(!confirm('この名前を招待リストから除きますか？'))return;
+  await sb.from('nariki_allowed').delete().eq('id',id);
+  await loadAllowedNames();render();
+}
+
+async function openSettings(){
+  S.view='settings';await loadAllowedNames();render();
+}
+
+function saveSettings(){
+  const n=document.getElementById('st-name');
+  const ic=document.getElementById('st-icon');
+  if(n&&n.value.trim())S.serverName=n.value.trim();
+  if(ic&&ic.value.trim())S.serverIcon=ic.value.trim();
+  S.view='chat';render();
+}
+
+render();
+</script>
+</body>
+</html>
