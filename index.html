@@ -860,12 +860,14 @@ async function openSettings(){
   S.view='settings';await loadAllowedNames();render();
 }
 
-function saveSettings(){
+async function saveSettings(){
   const n=document.getElementById('st-name');
   const ic=document.getElementById('st-icon');
   if(n&&n.value.trim())S.serverName=n.value.trim();
   if(ic&&ic.value.trim())S.serverIcon=ic.value.trim();
-  S.view='chat';await sb.from('nariki_settings').update({render();
+  S.view='chat';await 
+  sb.from('nariki_settings').update
+  render();
 }
 
 render();
