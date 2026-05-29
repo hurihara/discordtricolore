@@ -877,7 +877,12 @@ async function saveSettings(){
   
   render();
 }
-render();
+// 🌟 一番最後の「render();」をこれに書き換えるよ！
+async function initApp() {
+  await loadSettings(); // ログインする前に、まずデータベースから最新のサーバー名をゲット！
+  render();             // データが準備できたら画面を描画！
+}
+initApp();
 </script>
 </body>
 </html>
