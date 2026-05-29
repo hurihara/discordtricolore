@@ -865,11 +865,18 @@ async function saveSettings(){
   const ic=document.getElementById('st-icon');
   if(n&&n.value.trim())S.serverName=n.value.trim();
   if(ic&&ic.value.trim())S.serverIcon=ic.value.trim();
-  S.view='chat';await 
-  sb.from('nariki_settings').update
+  
+  S.view='chat';
+  
+  // 🌟 ココを大改修！テーマ(theme_idx)も一緒に保存しちゃおう！
+  await sb.from('nariki_settings').update({
+    server_name: S.serverName,
+    server_icon: S.serverIcon,
+    theme_idx: S.themeIdx // ← テーマを変えた時用にこれも入れておくと完璧！
+  }).eq('id', 1); // ← idが1のデータを更新するよ！って条件を忘れずに！
+  
   render();
 }
-
 render();
 </script>
 </body>
